@@ -77,6 +77,8 @@ This repository contains the implementation for the Senior DevOps Home Assessmen
 - Autoscaling is basic and may need tuning for production workloads.
 - No CDN is implemented due to time constraints, but it can be added with CloudFront.
 - The monitoring setup is minimal and could be enhanced with custom metrics.
+- The ALB can be configured for HTTPS using AWS Certificate Manager (ACM), though a domain is required (not     implemented here but noted in the README).
+
 
 ## Reflection
 ### Decisions Made Beyond Requirements
