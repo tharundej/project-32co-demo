@@ -82,14 +82,83 @@ This repository contains the implementation for the Senior DevOps Home Assessmen
 
 ## Reflection
 ### Decisions Made Beyond Requirements
-1. **HTTPS with ACM**: Implemented HTTPS using AWS Certificate Manager to secure traffic, even though it was a bonus requirement. This ensures end-to-end encryption and aligns with security best practices.
-   - **Why**: Securing traffic is critical for production applications, and ACM simplifies certificate management.
-   - **Trade-offs**: Adds slight complexity to the ALB setup but provides significant security benefits. Alternatives like self-signed certificates were considered but rejected due to maintenance overhead.
 
-2. **Dockerized Deployment**: Used Docker to containerize the application for consistent builds and deployments across environments.
-   - **Why**: Containers ensure environment parity and simplify dependency management.
-   - **Trade-offs**: Increases deployment complexity slightly but reduces runtime issues. Alternatives like direct EC2 deployment were considered but deemed less reliable.
+1.AWS for Cloud Provider
 
-3. **Basic Autoscaling**: Added a simple autoscaling group to handle load spikes, even though it was optional.
-   - **Why**: Improves application resilience and scalability for real-world scenarios.
-   - **Trade-offs**: Adds infrastructure complexity and potential costs. Manual scaling was considered but rejected due to lack of dynamic response to traffic changes.
+Decision: Chose AWS as the cloud provider.
+
+Why: Primarily due to team/individual familiarity and its extensive, mature suite of services (e.g., EC2, ALB, S3, RDS, VPC). This reduced the learning curve and allowed for quicker development and deployment.
+
+Trade-offs:
+
+Vendor Lock-in: Committing to AWS services can make migration to other clouds more challenging in the future, although the use of Terraform (see next point) mitigates this somewhat for infrastructure.
+
+Cost Optimization (Potential): While AWS is powerful, cost optimization requires careful management and understanding of its pricing models. Other cloud providers might offer more competitive pricing for specific services or workloads.
+
+Alternatives Considered: Google Cloud Platform (GCP) and Microsoft Azure.
+
+Reason for Rejection (Alternatives): Time constraints were the primary factor. Learning a new cloud platform would have significantly extended the project timeline.
+
+2.Terraform for Infrastructure as Code (IaC)
+
+Decision: Utilized Terraform for defining and managing infrastructure.
+
+Why: Its cloud-agnostic nature provides flexibility; the same language and tools can be used across different cloud providers if the project scope expands or changes in the future. It offers strong state management, planning capabilities (dry runs), and a large community.
+
+Trade-offs:
+
+Steeper Learning Curve (vs. Cloud-Specific IaC): While powerful, Terraform can have a steeper initial learning curve compared to AWS CloudFormation, especially for those new to IaC concepts.
+
+State Management Complexity: Managing Terraform state, especially in collaborative environments, requires careful planning (e.g., using remote backends like S3 with DynamoDB locking).
+
+Alternative Considered: AWS CloudFormation.
+
+Reason for Rejection (Alternative): CloudFormation is AWS-specific, which limits portability if a multi-cloud strategy were ever considered. Terraform's broader ecosystem and HCL (HashiCorp Configuration Language) were preferred for consistency across potential future projects.
+
+3.Docker for Application Containerization
+
+Decision: Containerized the application using Docker.
+
+Why: Ensured consistent build and runtime environments across development, testing, and production. Simplified dependency management and application packaging. It also laid the groundwork for future container orchestration.
+
+Trade-offs:
+
+Overhead: Introducing Docker adds a layer of abstraction and some minimal overhead in terms of image size and runtime.
+
+Increased Build Time (Potentially): Docker image builds can add to CI/CD pipeline times if not optimized.
+
+Alternative Considered: AWS Elastic Container Service (ECS) for orchestration.
+
+Reason for Rejection (Alternative): For this project's scope, using raw Docker (and potentially managing it on EC2 instances) was deemed simpler than introducing an entire orchestration service like ECS, which would have added complexity in terms of task definitions, services, and clusters. The goal was simplicity for initial deployment.
+
+4.AWS Secrets Manager for Sensitive Data
+
+Decision: Employed AWS Secrets Manager for storing and managing application secrets (e.g., database credentials, API keys).
+
+Why: Specifically designed for secure storage and rotation of secrets, offering features like automatic rotation, fine-grained access control, and integration with other AWS services. This adheres to security best practices.
+
+Trade-offs:
+
+Cost: Secrets Manager is a paid service, whereas AWS Systems Manager Parameter Store has a free tier for standard parameters (though it's not specifically designed for secrets rotation).
+
+Integration Complexity (Slight): Requires a bit more setup for application integration compared to simply fetching from Parameter Store, especially if leveraging advanced features like rotation.
+
+Alternative Considered: AWS Systems Manager Parameter Store.
+
+Reason for Rejection (Alternative): While Parameter Store can store sensitive data (using SecureString type), Secrets Manager provides a more comprehensive solution for secrets lifecycle management, including automatic rotation, which is crucial for security.
+
+5.Rolling Updates for Deployments
+
+Decision: Implemented rolling update deployment strategy.
+
+Why: Provided a good balance between minimizing downtime and managing complexity. It allows new instances to gradually replace old ones, ensuring service availability throughout the deployment process without requiring duplicate environments.
+
+Trade-offs:
+
+Potential for Mixed Versions: During the update, both old and new versions of the application are running concurrently. This requires careful consideration for backward and forward compatibility of APIs and database schema changes.
+
+Rollback Complexity: While rolling updates are generally simple for forward progression, a true "rollback" to a previous state might still involve another rolling update to the older version, which might not be as immediate or seamless as a blue-green swap.
+
+Alternative Considered: Blue-Green Deployments.
+
+Reason for Rejection (Alternative): Blue-green deployments, while offering zero-downtime and easy rollback, require maintaining two identical production environments (blue and green), which significantly increases infrastructure complexity and cost for this project's scope. The simplicity of rolling updates was prioritized.
